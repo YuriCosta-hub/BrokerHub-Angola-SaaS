@@ -1,0 +1,20 @@
+9.   Error Tracking, Logs & Observability 
+• 
+Monitoramento de Erros: Sentry integrado no Frontend e Backend para 
+captura em tempo real de exceções de código e falhas de requisição. 
+• 
+Gestão de Logs: Datadog ou stack open-source (Grafana Loki + Promtail) 
+para auditoria completa de acessos, logs de transações financeiras e 
+histórico de alterações em apólices (requisito de compliance e segurança). 
+  Modelo de Negócio Integrado na Arquitetura (SaaS Recorrente) 
+Para suportar o modelo de subscrição mensal, semestral e anual por utilizador 
+ativo (corretor/mediador): 
+• 
+Gateway de Pagamento Integrado: Integração com meios de pagamento 
+locais e internacionais (cartões multicaixa/EMIS, referências de pagamento 
+multicaixa e Stripe para cartões internacionais). 
+• 
+Módulo de Faturação & Billing: Sistema interno que verifica o número de 
+corretores ativos na corretora no final de cada ciclo, emite faturas 
+automáticas em Kwanza (AOA) e suspende de forma automatizada o 
+acesso em caso de incumprimento do pagamento da subscrição.

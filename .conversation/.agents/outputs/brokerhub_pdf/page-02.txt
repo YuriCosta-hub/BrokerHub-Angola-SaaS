@@ -1,0 +1,41 @@
+• 
+Motor de Identidade: Supabase Auth / Auth0 com suporte a JSON Web 
+Tokens (JWT) e autenticação de dois fatores (2FA) obrigatória para perfis 
+administrativos e financeiros. 
+• 
+Controle de Acessos (RBAC + ABAC): Matriz rigorosa baseada em papéis 
+(Role-Based Access Control): 
+o Super Admin (SaaS Owner) 
+o Broker Master (Dono da Corretora) 
+o Insurance Agent (Corretor/Mediador de Campo) 
+o Client/Policyholder (Portal do Cliente - Apenas visualização de suas 
+apólices e sinistros) 
+• 
+Conformidade com a APD (Lei de Proteção de Dados de Angola): 
+o Registo de consentimento explícito no primeiro acesso. 
+o Mascaramento automático de dados sensíveis (PII) nos logs. 
+o Funcionalidade integrada de "Direito ao Esquecimento" 
+(anonimização segura de dados de clientes inativos conforme os 
+prazos legais de retenção do setor segurador). 
+3.   Frontend (Interface do Utilizador) 
+• 
+Framework: Next.js 14+ (App Router) com Server-Side Rendering (SSR) 
+para máxima performance de carregamento e optimização de SEO no 
+mercado angolano (foco em conexões móveis e desktop corporativas). 
+• 
+Styling & Design System: Tailwind CSS + Shadcn UI (componentes 
+acessíveis, limpos e profissionais voltados para o mercado 
+financeiro/segurador). 
+• 
+Internacionalização (i18n): Suporte nativo a rotas localizadas para 
+Português (PT) e Inglês (EN) com troca instantânea de idioma e 
+formatação automática de valores monetários. 
+• 
+Formatação de Moeda Local: Sistema parametrizado para exibir sempre 
+Kwanza (Kz / AOA) com separadores de milhar corretos e cálculos precisos 
+de prémios e comissões. 
+• 
+Gestão de Estado & Cache de Cliente: Zustand para estado global leve e 
+TanStack React Query para sincronização de dados assíncronos com a 
+API em tempo real. 
+4.   Backend Logic & APIs (Lógica de Negócio)

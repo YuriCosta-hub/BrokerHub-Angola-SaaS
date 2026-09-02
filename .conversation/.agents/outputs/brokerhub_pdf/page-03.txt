@@ -1,0 +1,47 @@
+• 
+Arquitetura de API: Next.js API Routes / Server Actions em arquitetura 
+modular limpa (Service Layer Pattern), complementada por Node.js 
+(NestJS) para microserviços pesados de processamento de apólices e 
+relatórios em lote, caso necessário. 
+• 
+Comunicação: RESTful APIs seguras com payloads validados via Zod, e 
+Webhooks para integração em tempo real com os sistemas das 
+seguradoras parceiras (quando disponíveis). 
+• 
+Motor de Automação de Renovações e Sinistros: Workers em 
+background (usando BullMQ + Redis) para disparar alertas automáticos 
+por SMS/WhatsApp via APIs locais (ex: gateways de SMS em Angola) de 
+renovação de apólices (automóvel, saúde, acidentes) 30, 15 e 5 dias antes 
+do vencimento. 
+5.   A utilização da infraestrutura da Clouds2Africa em parceria com a rede de alta 
+performance da Angola Cables eleva o padrão de soberania de dados, reduz a latência 
+para níveis inferiores a 10ms em Luanda e garante conformidade absoluta com os 
+requisitos de residência de dados exigidos pela APD (Agência de Proteção de Dados). 
+A adaptação técnica desta camada de infraestrutura e deployment fica estruturada da 
+seguinte forma: 
+  Cloud, Compute & Hosting (Atualizado para Clouds2Africa / Angola 
+Cables) 
+• 
+Provedor de Infraestrutura (IaaS): Clouds2Africa (utilizando os datacenters 
+e o ecossistema de conectividade internacional da Angola Cables, como o data 
+center AngoAPI e conexões diretas aos cabos submarinos SACS e WACS). 
+• 
+Orquestração e Computação: Clusters em instâncias escaláveis (VMs Linux 
+otimizadas) geridas via Docker & Kubernetes (K8s) na nuvem da 
+Clouds2Africa, permitindo isolamento seguro por tenant (corretora). 
+• 
+Gestão de Fuso Horário (Timezone): Configuração nativa de todos os 
+servidores, bases de dados (PostgreSQL) e agendadores de tarefas (cron jobs de 
+alertas de apólices e sinistros) estritamente no fuso horário de Luanda 
+(Africa/Luanda — UTC+1), eliminando qualquer desfasamento temporal nos 
+registos de auditoria e prazos da ARSEG. 
+• 
+Pipeline de CI/CD Ajustado: 
+o Repositório central no GitHub com ações automatizadas (GitHub 
+Actions). 
+o Build de imagens Docker e testes automatizados. 
+o Deployment contínuo diretamente para os ambientes de Staging e 
+Produção hospedados na infraestrutura local da Clouds2Africa, 
+garantindo que o tráfego e o armazenamento permaneçam otimizados e 
+próximos do ecossistema financeiro angolano. 
+o

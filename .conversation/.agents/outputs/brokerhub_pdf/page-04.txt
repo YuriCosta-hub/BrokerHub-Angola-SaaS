@@ -1,0 +1,43 @@
+6.   Hosting & Deployment (Hospedagem e CI/CD) 
+• 
+Frontend Hosting: Vercel Enterprise (garantindo Edge Network veloz para 
+carregamento global e em Angola). 
+• 
+Backend & Workers Hosting: AWS EC2 / ECS / Render para os serviços de 
+background e banco de dados gerenciado. 
+• 
+Version Control: GitHub com fluxo de branches estruturado (GitFlow / 
+Trunk-Based Development). 
+• 
+CI/CD Pipeline: GitHub Actions configurado para: 
+1. Executar testes unitários e de integração (Jest / Vitest). 
+2. Análise estática de código e segurança (SonarQube / Snyk). 
+3. Build automático de imagens Docker e deploy automatizado para 
+Staging (pull requests) e Production (merge na branch main). 
+7.   Segurança e Camada Defensiva (Backend & API Security) 
+• 
+Row Level Security (RLS): Implementação estrita de políticas RLS no 
+PostgreSQL. Cada consulta ao banco de dados valida automaticamente o 
+tenant_id da corretora, impedindo absolutamente que um mediador aceda 
+aos dados de carteira de outro. 
+• 
+Rate Limiting: Proteção contra ataques de força bruta e DDoS nas rotas 
+críticas de autenticação, recuperação de senha e API endpoints através de 
+Redis + Upstash Rate Limit. 
+• 
+Proteção de Cabeçalhos e Sanitização: Uso de Helmet.js, prevenção 
+rigorosa de SQL Injection, XSS e validação estrita de inputs com Zod em 
+todas as camadas. 
+8.   Caching, Performance & Escalabilidad 
+• 
+Cache Layer: Redis para armazenamento em cache de sessões, dados de 
+tabelas de referência de seguradoras e consultas frequentes de relatórios 
+de comissões. 
+• 
+CDN: Cloudflare na camada de borda para proteção contra ataques, 
+otimização de assets estáticos e aceleração de entrega de conteúdo em 
+território angolano. 
+• 
+Load Balancing: AWS Application Load Balancer (ALB) distribuindo o 
+tráfego uniformemente entre os nós de backend durante picos de 
+renovação de apólices.

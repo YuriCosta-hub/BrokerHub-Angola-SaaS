@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "BrokerHub Angola"
+description = "CRM e gestão integrada para corretoras e mediadores de seguros em Angola, com clientes, apólices, sinistros, comissões e renovações num único espaço seguro."
+version = "1.0.0"
+id = "artifacts/brokerhub-angola"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23228
+
+[services.development]
+run = "pnpm --filter @workspace/brokerhub-angola run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/brokerhub-angola", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/brokerhub-angola/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23228"
+BASE_PATH = "/"

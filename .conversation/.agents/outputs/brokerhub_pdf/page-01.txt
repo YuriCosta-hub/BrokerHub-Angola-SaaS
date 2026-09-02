@@ -1,0 +1,35 @@
+BrokerHub Angola 
+ 
+Como um time de arquitetos e desenvolvedores sênior de software, estruturamos 
+a arquitetura Full Stack de alta performance, segura, escalável e pronta para 
+produção do BrokerHub Angola. 
+O projeto foi concebido para atender rigorosamente à legislação angolana de 
+proteção de dados (APD - Agência de Proteção de Dados), operar em moeda 
+local (Kwanza - AOA), suportar Português e Inglês, e focar agressivamente na 
+expansão do mercado segurador por meio de automação e inteligência de 
+distribuição. 
+  Arquitetura Full Stack — BrokerHub Angola 
+1.   Database & Storage (Camada de Dados) 
+• 
+Banco de Dados Principal: Supabase (PostgreSQL) gerido na nuvem, 
+escolhido pela robustez relacional essencial para apólices, sinistros e 
+comissões, além do suporte nativo a extensões geoespaciais (se 
+necessário para mapeamento de frotas/riscos). 
+• 
+Armazenamento de Ficheiros (Storage): AWS S3 / Supabase Storage 
+(com bucket criptografado em região na Europa/África) para salvamento 
+seguro de documentos de identidade, cartas de condução, apólices em 
+PDF e comprovativos de sinistro. Os ficheiros passam por pré-assinatura de 
+URL com expiração rápida. 
+• 
+Modelagem de Dados Chave (Multi-tenant por Corretora): 
+o tenants (Corretoras/Mediadores independentes) 
+o users (Gestores, Corretores, Backoffice) 
+o clients (Pessoas Singulares e Coletivas com NIF angolano validado) 
+o policies (Apólices de Automóvel, Saúde, Acidentes com prazos e 
+renovações) 
+o claims (Sinistros em tempo real associados às seguradoras 
+parceiras) 
+o subscriptions (Planos mensais, semestrais e anuais geridos via 
+gateway de pagamento local). 
+2.   Auth & Permissions (Autenticação e Permissões)
