@@ -1,3 +1,4 @@
+import * as React from "react";
 import { useState } from "react";
 import { useListClaims, getListClaimsQueryKey, useCreateClaim, useListPolicies } from "@workspace/api-client-react";
 import { queryClient } from "@/lib/queryClient";
