@@ -41,10 +41,6 @@ function stripBase(path: string): string {
     : path;
 }
 
-if (!clerkPubKey) {
-  throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY in .env file');
-}
-
 const clerkAppearance = {
   cssLayerName: "clerk",
   variables: {
@@ -143,6 +139,10 @@ function HomeRedirect() {
 export function ClerkProviderWithRoutes() {
   const [, setLocation] = useLocation();
 
+  if (!clerkPubKey) {
+    return <Landing />;
+  }
+
   return (
     <ClerkProvider
       publishableKey={clerkPubKey}
@@ -227,7 +227,7 @@ function App() {
   return (
     <I18nProvider>
       <WouterRouter base={basePath}>
-        <ClerkProviderWithRoutes />
+        {clerkPubKey ? <ClerkProviderWithRoutes /> : <Landing />}
       </WouterRouter>
     </I18nProvider>
   );

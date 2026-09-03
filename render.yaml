@@ -1,0 +1,39 @@
+# Staging na Render (Frankfurt). Produção com PII: Clouds2Africa (ADR 0001).
+# Ligar o GitHub em https://dashboard.render.com/select-repo?type=blueprint
+
+databases:
+  - name: brokerhub-db
+    plan: free
+    region: frankfurt
+    postgresMajorVersion: 16
+
+services:
+  - type: web
+    name: brokerhub-angola
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MFA_ENFORCE
+        value: "true"
+      - key: WORKERS_ENABLED
+        value: "true"
+      - key: STORAGE_DIR
+        value: /tmp/brokerhub-storage
+      - key: CORS_ORIGINS
+        value: https://brokerhub-angola.onrender.com
+      - key: DATABASE_URL
+        fromDatabase:
+          name: brokerhub-db
+          property: connectionString
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: CLERK_PUBLISHABLE_KEY
+        sync: false
+      - key: VITE_CLERK_PUBLISHABLE_KEY
+        sync: false
