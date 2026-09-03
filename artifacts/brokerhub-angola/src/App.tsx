@@ -26,10 +26,35 @@ import Documents from "@/pages/documents";
 import { Toaster } from "@/components/ui/toaster";
 import { I18nProvider } from "@/i18n";
 
-const clerkPubKey = publishableKeyFromHost(
-  window.location.hostname,
-  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
-);
+const CLERK_SATELLITE_HOST_SUFFIXES = [
+  ".replit.app",
+  ".replit.dev",
+  ".repl.co",
+  ".lcl.dev",
+  ".lclstage.dev",
+  ".lclclerk.com",
+] as const;
+
+function isClerkSatelliteHost(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  return CLERK_SATELLITE_HOST_SUFFIXES.some((suffix) => host.endsWith(suffix));
+}
+
+function resolveClerkPublishableKey(): string | undefined {
+  const fromEnv = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+  if (
+    typeof fromEnv === "string" &&
+    (fromEnv.startsWith("pk_test_") || fromEnv.startsWith("pk_live_"))
+  ) {
+    return fromEnv;
+  }
+  if (isClerkSatelliteHost(window.location.hostname)) {
+    return publishableKeyFromHost(window.location.hostname, fromEnv);
+  }
+  return undefined;
+}
+
+const clerkPubKey = resolveClerkPublishableKey();
 
 const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
 
