@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { type ComponentType, useEffect, useRef } from "react";
 import { ClerkProvider, SignIn, SignUp, Show, useClerk } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from "wouter";
@@ -7,6 +7,7 @@ import { queryClient } from "@/lib/queryClient";
 
 import Landing from "@/pages/landing";
 import { Layout } from "@/components/layout";
+import { SessionGate } from "@/components/session-gate";
 import Dashboard from "@/pages/dashboard";
 import Clients from "@/pages/clients";
 import Policies from "@/pages/policies";
@@ -15,6 +16,8 @@ import Renewals from "@/pages/renewals";
 import Reports from "@/pages/reports";
 import Team from "@/pages/team";
 import Settings from "@/pages/settings";
+import Onboarding from "@/pages/onboarding";
+import MfaRequired from "@/pages/mfa-required";
 import { Toaster } from "@/components/ui/toaster";
 
 const clerkPubKey = publishableKeyFromHost(
@@ -91,13 +94,25 @@ function ClerkQueryClientCacheInvalidator() {
   return null;
 }
 
-function ProtectedRoute({ component: Component }: { component: any }) {
+function ProtectedRoute({
+  component: Component,
+  withLayout = true,
+}: {
+  component: ComponentType;
+  withLayout?: boolean;
+}) {
   return (
     <>
       <Show when="signed-in">
-        <Layout>
-          <Component />
-        </Layout>
+        <SessionGate>
+          {withLayout ? (
+            <Layout>
+              <Component />
+            </Layout>
+          ) : (
+            <Component />
+          )}
+        </SessionGate>
       </Show>
       <Show when="signed-out">
         <Redirect to="/sign-in" />
@@ -146,6 +161,18 @@ export function ClerkProviderWithRoutes() {
           <Route path="/" component={HomeRedirect} />
           <Route path="/sign-in/*?" component={SignInPage} />
           <Route path="/sign-up/*?" component={SignUpPage} />
+          <Route
+            path="/onboarding"
+            component={() => (
+              <ProtectedRoute component={Onboarding} withLayout={false} />
+            )}
+          />
+          <Route
+            path="/seguranca-mfa"
+            component={() => (
+              <ProtectedRoute component={MfaRequired} withLayout={false} />
+            )}
+          />
           
           <Route path="/dashboard" component={() => <ProtectedRoute component={Dashboard} />} />
           <Route path="/clientes" component={() => <ProtectedRoute component={Clients} />} />

@@ -20,6 +20,8 @@ tags:
     description: Sinistros
   - name: activity
     description: Linha de atividade
+  - name: tenants
+    description: Onboarding de corretoras e sessão
 paths:
   /healthz:
     get:
@@ -33,6 +35,46 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /me:
+    get:
+      operationId: getMe
+      tags: [tenants]
+      summary: Sessão, MFA e corretora do utilizador autenticado
+      responses:
+        "200":
+          description: Current session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Me"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /tenants:
+    post:
+      operationId: createTenant
+      tags: [tenants]
+      summary: Registar corretora (onboarding, sem dados de demonstração)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TenantInput"
+      responses:
+        "201":
+          description: Created tenant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tenant"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
   /dashboard/summary:
     get:
       operationId: getDashboardSummary
@@ -225,6 +267,24 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
+    Unauthorized:
+      description: Unauthenticated
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Conflict:
+      description: Conflict
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
     NotFound:
       description: Resource not found
       content:
@@ -243,7 +303,66 @@ components:
       properties:
         error:
           type: string
+        code:
+          type: string
+          enum:
+            [
+              UNAUTHENTICATED,
+              TENANT_REQUIRED,
+              MFA_REQUIRED,
+              ORIGIN_DENIED,
+              VALIDATION_ERROR,
+              CONFLICT,
+              NOT_FOUND,
+            ]
       required: [error]
+    Me:
+      type: object
+      properties:
+        userId:
+          type: string
+        role:
+          type: ["string", "null"]
+          enum: [super_admin, broker_master, agent, client, null]
+        tenant:
+          oneOf:
+            - $ref: "#/components/schemas/Tenant"
+            - type: "null"
+        mfa:
+          $ref: "#/components/schemas/MfaStatus"
+      required: [userId, role, tenant, mfa]
+    MfaStatus:
+      type: object
+      properties:
+        required:
+          type: boolean
+        satisfied:
+          type: boolean
+      required: [required, satisfied]
+    Tenant:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        nif:
+          type: string
+        timezone:
+          type: string
+        currency:
+          type: string
+      required: [id, name, nif, timezone, currency]
+    TenantInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+        nif:
+          type: string
+          description: NIF angolano (10 dígitos colectivo ou 9+2 letras+3 particular)
+      required: [name, nif]
     DashboardSummary:
       type: object
       properties:
