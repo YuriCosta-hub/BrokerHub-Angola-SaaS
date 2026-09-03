@@ -1,6 +1,7 @@
 import {
   date,
   index,
+  integer,
   numeric,
   pgEnum,
   pgTable,
@@ -60,12 +61,15 @@ export const membersTable = pgTable(
       .references(() => tenantsTable.id, { onDelete: "cascade" }),
     clerkUserId: text("clerk_user_id").notNull().unique(),
     role: memberRole("role").notNull().default("broker_master"),
+    clientId: text("client_id"),
+    email: text("email"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
   },
   (table) => ({
     byTenant: index("members_by_tenant").on(table.tenantId),
+    byTenantRole: index("members_by_tenant_role").on(table.tenantId, table.role),
   }),
 );
 
@@ -82,6 +86,7 @@ export const clientsTable = pgTable(
     phone: text("phone").notNull(),
     type: clientType("type").notNull(),
     status: clientStatus("status").notNull().default("active"),
+    anonymizedAt: timestamp("anonymized_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -179,5 +184,176 @@ export const activitiesTable = pgTable(
       table.tenantId,
       table.createdAt,
     ),
+  }),
+);
+
+export const consentPurpose = pgEnum("consent_purpose", [
+  "privacy_notice",
+  "marketing",
+]);
+export const inviteStatus = pgEnum("invite_status", [
+  "pending",
+  "accepted",
+  "expired",
+  "revoked",
+]);
+export const subscriptionPlan = pgEnum("subscription_plan", [
+  "monthly",
+  "semiannual",
+  "annual",
+]);
+export const subscriptionStatus = pgEnum("subscription_status", [
+  "trialing",
+  "active",
+  "past_due",
+  "suspended",
+]);
+export const notificationChannel = pgEnum("notification_channel", [
+  "sms",
+  "whatsapp",
+  "email",
+]);
+export const notificationStatus = pgEnum("notification_status", [
+  "queued",
+  "sent",
+  "failed",
+  "skipped",
+]);
+
+export const consentsTable = pgTable(
+  "consents",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").references(() => tenantsTable.id, {
+      onDelete: "cascade",
+    }),
+    clerkUserId: text("clerk_user_id").notNull(),
+    purpose: consentPurpose("purpose").notNull(),
+    policyVersion: text("policy_version").notNull(),
+    grantedAt: timestamp("granted_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    withdrawnAt: timestamp("withdrawn_at", { withTimezone: true }),
+    ipHash: text("ip_hash"),
+  },
+  (table) => ({
+    byUserPurpose: index("consents_by_user_purpose").on(
+      table.clerkUserId,
+      table.purpose,
+    ),
+  }),
+);
+
+export const invitesTable = pgTable(
+  "invites",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id")
+      .notNull()
+      .references(() => tenantsTable.id, { onDelete: "cascade" }),
+    email: text("email").notNull(),
+    role: memberRole("role").notNull(),
+    clientId: text("client_id").references(() => clientsTable.id, {
+      onDelete: "cascade",
+    }),
+    tokenHash: text("token_hash").notNull().unique(),
+    status: inviteStatus("status").notNull().default("pending"),
+    invitedBy: text("invited_by"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    byTenant: index("invites_by_tenant").on(table.tenantId),
+  }),
+);
+
+export const documentsTable = pgTable(
+  "documents",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id")
+      .notNull()
+      .references(() => tenantsTable.id, { onDelete: "cascade" }),
+    clientId: text("client_id").references(() => clientsTable.id, {
+      onDelete: "cascade",
+    }),
+    policyId: text("policy_id").references(() => policiesTable.id, {
+      onDelete: "cascade",
+    }),
+    claimId: text("claim_id").references(() => claimsTable.id, {
+      onDelete: "cascade",
+    }),
+    fileName: text("file_name").notNull(),
+    contentType: text("content_type").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    storageKey: text("storage_key").notNull(),
+    createdBy: text("created_by"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    byTenant: index("documents_by_tenant").on(table.tenantId),
+  }),
+);
+
+export const subscriptionsTable = pgTable(
+  "subscriptions",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id")
+      .notNull()
+      .references(() => tenantsTable.id, { onDelete: "cascade" })
+      .unique(),
+    plan: subscriptionPlan("plan").notNull().default("monthly"),
+    status: subscriptionStatus("status").notNull().default("trialing"),
+    seats: integer("seats").notNull().default(1),
+    currency: text("currency").notNull().default("AOA"),
+    currentPeriodEnd: timestamp("current_period_end", {
+      withTimezone: true,
+    }).notNull(),
+    stripeCustomerId: text("stripe_customer_id"),
+    stripeCheckoutId: text("stripe_checkout_id"),
+    multicaixaReference: text("multicaixa_reference"),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    byStatus: index("subscriptions_by_status").on(table.status),
+  }),
+);
+
+export const notificationJobsTable = pgTable(
+  "notification_jobs",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id")
+      .notNull()
+      .references(() => tenantsTable.id, { onDelete: "cascade" }),
+    policyId: text("policy_id")
+      .notNull()
+      .references(() => policiesTable.id, { onDelete: "cascade" }),
+    channel: notificationChannel("channel").notNull(),
+    offsetDays: integer("offset_days").notNull(),
+    scheduledFor: date("scheduled_for", { mode: "string" }).notNull(),
+    status: notificationStatus("status").notNull().default("queued"),
+    lastError: text("last_error"),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    uniqueSend: uniqueIndex("notification_jobs_unique").on(
+      table.policyId,
+      table.channel,
+      table.offsetDays,
+      table.scheduledFor,
+    ),
+    byTenant: index("notification_jobs_by_tenant").on(table.tenantId),
   }),
 );

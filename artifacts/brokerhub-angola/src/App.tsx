@@ -18,7 +18,13 @@ import Team from "@/pages/team";
 import Settings from "@/pages/settings";
 import Onboarding from "@/pages/onboarding";
 import MfaRequired from "@/pages/mfa-required";
+import Consent from "@/pages/consent";
+import Portal from "@/pages/portal";
+import InviteAccept from "@/pages/invite-accept";
+import Billing from "@/pages/billing";
+import Documents from "@/pages/documents";
 import { Toaster } from "@/components/ui/toaster";
+import { I18nProvider } from "@/i18n";
 
 const clerkPubKey = publishableKeyFromHost(
   window.location.hostname,
@@ -173,6 +179,24 @@ export function ClerkProviderWithRoutes() {
               <ProtectedRoute component={MfaRequired} withLayout={false} />
             )}
           />
+          <Route
+            path="/privacidade"
+            component={() => (
+              <ProtectedRoute component={Consent} withLayout={false} />
+            )}
+          />
+          <Route
+            path="/convite"
+            component={() => (
+              <ProtectedRoute component={InviteAccept} withLayout={false} />
+            )}
+          />
+          <Route
+            path="/portal"
+            component={() => (
+              <ProtectedRoute component={Portal} withLayout={false} />
+            )}
+          />
           
           <Route path="/dashboard" component={() => <ProtectedRoute component={Dashboard} />} />
           <Route path="/clientes" component={() => <ProtectedRoute component={Clients} />} />
@@ -181,6 +205,8 @@ export function ClerkProviderWithRoutes() {
           <Route path="/renovacoes" component={() => <ProtectedRoute component={Renewals} />} />
           <Route path="/relatorios" component={() => <ProtectedRoute component={Reports} />} />
           <Route path="/equipa" component={() => <ProtectedRoute component={Team} />} />
+          <Route path="/documentos" component={() => <ProtectedRoute component={Documents} />} />
+          <Route path="/facturacao" component={() => <ProtectedRoute component={Billing} />} />
           <Route path="/configuracoes" component={() => <ProtectedRoute component={Settings} />} />
           
           <Route>
@@ -199,9 +225,11 @@ export function ClerkProviderWithRoutes() {
 
 function App() {
   return (
-    <WouterRouter base={basePath}>
-      <ClerkProviderWithRoutes />
-    </WouterRouter>
+    <I18nProvider>
+      <WouterRouter base={basePath}>
+        <ClerkProviderWithRoutes />
+      </WouterRouter>
+    </I18nProvider>
   );
 }
 

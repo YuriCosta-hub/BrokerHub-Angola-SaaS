@@ -21,12 +21,11 @@ import {
   UpdateClientParams,
 } from "@workspace/api-zod";
 import { errorBody } from "../lib/errors";
-import { requireAuth, requireTenant } from "../middlewares/access";
+import { requireCrm } from "../middlewares/access";
 
 const router = Router();
 
-router.use(requireAuth);
-router.use(requireTenant);
+router.use(requireCrm);
 
 function ctx(res: Response) {
   return {

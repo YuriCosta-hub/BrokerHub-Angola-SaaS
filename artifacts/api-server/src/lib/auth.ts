@@ -8,6 +8,7 @@ import {
 } from "@workspace/db";
 
 export const privilegedRoles = ["super_admin", "broker_master"] as const;
+export const crmRoles = ["super_admin", "broker_master", "agent"] as const;
 
 export type MemberRole =
   | "super_admin"
@@ -19,6 +20,8 @@ export type MemberRecord = {
   tenantId: string;
   role: MemberRole;
   clerkUserId: string;
+  clientId: string | null;
+  email: string | null;
 };
 
 export function isMfaEnforced(): boolean {
@@ -82,6 +85,8 @@ export async function findMember(
       tenantId: row.tenantId,
       role: row.role,
       clerkUserId: row.clerkUserId,
+      clientId: row.clientId ?? null,
+      email: row.email ?? null,
     };
   });
 }

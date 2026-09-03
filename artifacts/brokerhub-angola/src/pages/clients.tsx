@@ -7,16 +7,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, SearchX, FileText, ChevronRight } from "lucide-react";
+import { Search, Plus, SearchX, FileText, ChevronRight, UserX } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useMe } from "@/hooks/use-me";
+import { apiJson } from "@/lib/session";
 
 export default function Clients() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const { toast } = useToast();
+  const { data: me } = useMe();
+  const canForget =
+    me?.role === "broker_master" || me?.role === "super_admin";
 
   const { data: clients, isLoading } = useListClients({ search: debouncedSearch });
   const createClient = useCreateClient();
@@ -49,6 +54,29 @@ export default function Clients() {
         toast({ variant: "destructive", title: "Erro ao criar cliente", description: err.message || "Verifique os dados inseridos." });
       }
     });
+  };
+
+  const handleForget = async (clientId: string, name: string) => {
+    if (
+      !window.confirm(
+        `Anonimizar ${name}? Irreversível, sujeito a retenção legal de apólices e sinistros abertos.`,
+      )
+    ) {
+      return;
+    }
+    try {
+      await apiJson(`/api/clients/${clientId}/forget`, { method: "POST" });
+      await queryClient.invalidateQueries({
+        queryKey: getListClientsQueryKey({ search: debouncedSearch }),
+      });
+      toast({ title: "Direito ao esquecimento aplicado" });
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "Não foi possível esquecer o titular",
+        description: err instanceof Error ? err.message : "Retenção em vigor",
+      });
+    }
   };
 
   return (
@@ -191,9 +219,24 @@ export default function Clients() {
                     {formatKwanza(client.totalPremium)}
                   </TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
+                    <div className="flex justify-end gap-1">
+                      {canForget && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Direito ao esquecimento"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void handleForget(client.id, client.name);
+                          }}
+                        >
+                          <UserX className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))

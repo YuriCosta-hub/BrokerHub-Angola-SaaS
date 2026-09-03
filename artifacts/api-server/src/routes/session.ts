@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import {
+  consentsTable,
   membersTable,
   tenantsTable,
   withRequestContext,
@@ -14,6 +15,9 @@ import {
 } from "../lib/auth";
 import { isValidAngolaNif, normalizeNif } from "../lib/nif";
 import { requireAuth } from "../middlewares/access";
+import { PRIVACY_POLICY_VERSION } from "../lib/privacy";
+import { hashIp } from "../lib/tokens";
+import { ensureSubscription } from "../lib/subscription";
 
 const router: IRouter = Router();
 
@@ -26,27 +30,49 @@ router.get("/me", async (req, res) => {
   const mfaRequired = roleRequiresMfa(role);
   const mfaSatisfied = sessionHasMfa(req);
 
+  const consent = await withRequestContext({ clerkUserId }, async (tx) =>
+    tx.query.consentsTable.findFirst({
+      where: and(
+        eq(consentsTable.clerkUserId, clerkUserId),
+        eq(consentsTable.purpose, "privacy_notice"),
+        eq(consentsTable.policyVersion, PRIVACY_POLICY_VERSION),
+        isNull(consentsTable.withdrawnAt),
+      ),
+    }),
+  );
+
   if (!member) {
     res.json({
       userId: clerkUserId,
       tenant: null,
       role: null,
+      clientId: null,
+      consentGranted: Boolean(consent),
+      privacyPolicyVersion: PRIVACY_POLICY_VERSION,
+      subscriptionStatus: null,
       mfa: { required: mfaRequired, satisfied: mfaSatisfied },
     });
     return;
   }
 
-  const tenant = await withRequestContext(
+  const { tenant, subscription } = await withRequestContext(
     { clerkUserId, tenantId: member.tenantId },
-    async (tx) =>
-      tx.query.tenantsTable.findFirst({
+    async (tx) => {
+      const tenantRow = await tx.query.tenantsTable.findFirst({
         where: eq(tenantsTable.id, member.tenantId),
-      }),
+      });
+      const subscriptionRow = await ensureSubscription(tx, member.tenantId);
+      return { tenant: tenantRow, subscription: subscriptionRow };
+    },
   );
 
   res.json({
     userId: clerkUserId,
     role: member.role,
+    clientId: member.clientId,
+    consentGranted: Boolean(consent),
+    privacyPolicyVersion: PRIVACY_POLICY_VERSION,
+    subscriptionStatus: subscription.status,
     tenant: tenant
       ? {
           id: tenant.id,
@@ -57,6 +83,68 @@ router.get("/me", async (req, res) => {
         }
       : null,
     mfa: { required: mfaRequired, satisfied: mfaSatisfied },
+  });
+});
+
+router.get("/consents/status", async (_req, res) => {
+  const clerkUserId = res.locals.clerkUserId;
+  const rows = await withRequestContext({ clerkUserId }, async (tx) =>
+    tx
+      .select()
+      .from(consentsTable)
+      .where(
+        and(
+          eq(consentsTable.clerkUserId, clerkUserId),
+          isNull(consentsTable.withdrawnAt),
+        ),
+      ),
+  );
+  res.json({
+    privacyPolicyVersion: PRIVACY_POLICY_VERSION,
+    privacyNotice: rows.some(
+      (row) =>
+        row.purpose === "privacy_notice" &&
+        row.policyVersion === PRIVACY_POLICY_VERSION,
+    ),
+    marketing: rows.some((row) => row.purpose === "marketing"),
+  });
+});
+
+router.post("/consents", async (req, res) => {
+  const body = req.body as { purpose?: unknown; granted?: unknown };
+  const purpose =
+    body.purpose === "marketing" ? "marketing" : "privacy_notice";
+  if (body.granted === false) {
+    res.status(400).json(
+      errorBody(
+        "VALIDATION_ERROR",
+        "O consentimento da política de privacidade é obrigatório",
+      ),
+    );
+    return;
+  }
+  const clerkUserId = res.locals.clerkUserId;
+  const member = await findMember(clerkUserId);
+  await withRequestContext(
+    {
+      clerkUserId,
+      tenantId: member?.tenantId,
+    },
+    async (tx) => {
+      await tx.insert(consentsTable).values({
+        id: randomUUID(),
+        tenantId: member?.tenantId,
+        clerkUserId,
+        purpose,
+        policyVersion: PRIVACY_POLICY_VERSION,
+        ipHash: hashIp(req.ip),
+      });
+    },
+  );
+  res.status(201).json({
+    purpose,
+    policyVersion: PRIVACY_POLICY_VERSION,
+    granted: true,
   });
 });
 
@@ -112,6 +200,7 @@ router.post("/tenants", async (req, res) => {
           clerkUserId: res.locals.clerkUserId,
           role: "broker_master",
         });
+        await ensureSubscription(tx, tenantId);
       },
     );
   } catch (err) {

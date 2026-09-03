@@ -22,18 +22,53 @@ export function SessionGate({ children }: { children: ReactNode }) {
   const needsMfa = data.mfa.required && !data.mfa.satisfied;
   const onMfa = location.startsWith("/seguranca-mfa");
   const onOnboarding = location.startsWith("/onboarding");
+  const onConsent = location.startsWith("/privacidade");
+  const onInvite = location.startsWith("/convite");
+  const onBilling = location.startsWith("/facturacao");
+  const onPortal = location.startsWith("/portal");
+  const homeForRole = data.role === "client" ? "/portal" : "/dashboard";
+
+  const search = typeof window !== "undefined" ? window.location.search : "";
+  const nextTarget = new URLSearchParams(search).get("next");
+  const safeNext =
+    nextTarget && nextTarget.startsWith("/") && !nextTarget.startsWith("//")
+      ? nextTarget
+      : null;
 
   if (needsMfa && !onMfa) {
     return <Redirect to="/seguranca-mfa" />;
   }
-  if (!needsMfa && !data.tenant && !onOnboarding) {
+  if (!data.consentGranted && !onConsent && !onMfa) {
+    const resume = `${location}${search}`;
+    return (
+      <Redirect
+        to={`/privacidade?next=${encodeURIComponent(resume)}`}
+      />
+    );
+  }
+  if (data.consentGranted && onConsent) {
+    if (safeNext) {
+      return <Redirect to={safeNext} />;
+    }
+    if (!data.tenant) {
+      return <Redirect to={onInvite ? location : "/onboarding"} />;
+    }
+    return <Redirect to={homeForRole} />;
+  }
+  if (data.role === "client" && data.tenant && !onPortal && !onInvite) {
+    return <Redirect to="/portal" />;
+  }
+  if (!needsMfa && !data.tenant && !onOnboarding && !onInvite && !onConsent) {
     return <Redirect to="/onboarding" />;
   }
+  if (data.subscriptionStatus === "suspended" && data.role !== "client" && !onBilling) {
+    return <Redirect to="/facturacao" />;
+  }
   if (data.tenant && (onOnboarding || onMfa)) {
-    return <Redirect to="/dashboard" />;
+    return <Redirect to={homeForRole} />;
   }
   if (!needsMfa && onMfa) {
-    return <Redirect to={data.tenant ? "/dashboard" : "/onboarding"} />;
+    return <Redirect to={data.tenant ? homeForRole : "/onboarding"} />;
   }
 
   return <>{children}</>;

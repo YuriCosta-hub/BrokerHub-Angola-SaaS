@@ -47,3 +47,9 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Local document storage (P2)
+data/storage/
+.env
+.env.local
+

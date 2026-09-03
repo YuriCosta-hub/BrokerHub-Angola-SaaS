@@ -11,28 +11,42 @@ import {
   LogOut,
   UsersRound,
   Settings,
-  Bell
+  Bell,
+  CreditCard,
+  FolderArchive,
 } from "lucide-react";
 import { Button } from "./ui/button";
+import { useI18n } from "@/i18n";
+import { useMe } from "@/hooks/use-me";
 
 export function Layout({ children }: { children: ReactNode }) {
-  const [location, setLocation] = useLocation();
+  const [location] = useLocation();
   const { signOut } = useClerk();
   const { user } = useUser();
+  const { t, locale, setLocale } = useI18n();
+  const { data: me } = useMe();
+  const isAdmin =
+    me?.role === "broker_master" || me?.role === "super_admin";
 
   const navItems = [
-    { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { label: "Clientes", href: "/clientes", icon: Users },
-    { label: "Apólices", href: "/apolices", icon: FileText },
-    { label: "Sinistros", href: "/sinistros", icon: ShieldAlert },
-    { label: "Renovações", href: "/renovacoes", icon: RefreshCcw },
-    { label: "Relatórios", href: "/relatorios", icon: BarChart3 },
+    { label: t.nav.dashboard, href: "/dashboard", icon: LayoutDashboard },
+    { label: t.nav.clients, href: "/clientes", icon: Users },
+    { label: t.nav.policies, href: "/apolices", icon: FileText },
+    { label: t.nav.claims, href: "/sinistros", icon: ShieldAlert },
+    { label: t.nav.renewals, href: "/renovacoes", icon: RefreshCcw },
+    { label: t.nav.reports, href: "/relatorios", icon: BarChart3 },
+    { label: t.nav.documents, href: "/documentos", icon: FolderArchive },
   ];
 
   const adminItems = [
-    { label: "Equipa", href: "/equipa", icon: UsersRound },
-    { label: "Configurações", href: "/configuracoes", icon: Settings },
+    { label: t.nav.team, href: "/equipa", icon: UsersRound },
+    { label: t.nav.billing, href: "/facturacao", icon: CreditCard },
+    { label: t.nav.settings, href: "/configuracoes", icon: Settings },
   ];
+
+  const visibleAdmin = isAdmin
+    ? adminItems
+    : adminItems.filter((item) => item.href === "/configuracoes");
 
   return (
     <div className="flex min-h-screen bg-muted/40">
@@ -68,7 +82,7 @@ export function Layout({ children }: { children: ReactNode }) {
           <div className="px-3 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider mt-6 mb-2">
             Administração
           </div>
-          {adminItems.map((item) => {
+          {visibleAdmin.map((item) => {
             const isActive = location === item.href || location.startsWith(`${item.href}/`);
             return (
               <Link key={item.href} href={item.href}>
@@ -102,16 +116,23 @@ export function Layout({ children }: { children: ReactNode }) {
             onClick={() => signOut({ redirectUrl: "/" })}
           >
             <LogOut className="mr-2 h-4 w-4" />
-            Terminar sessão
+            {t.nav.signOut}
           </Button>
         </div>
       </aside>
       <main className="flex-1 md:pl-64 flex flex-col min-h-0">
         <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-6 shadow-sm">
           <h1 className="text-xl font-semibold flex-1 tracking-tight">
-            {navItems.find(i => location.startsWith(i.href))?.label || adminItems.find(i => location.startsWith(i.href))?.label || 'CRM'}
+            {navItems.find(i => location.startsWith(i.href))?.label || visibleAdmin.find(i => location.startsWith(i.href))?.label || 'CRM'}
           </h1>
           <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setLocale(locale === "pt" ? "en" : "pt")}
+            >
+              {locale === "pt" ? "EN" : "PT"}
+            </Button>
             <Button variant="ghost" size="icon" className="relative text-muted-foreground">
               <Bell className="h-5 w-5" />
               <span className="absolute top-2 right-2.5 h-2 w-2 rounded-full bg-destructive"></span>

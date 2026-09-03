@@ -330,7 +330,16 @@ components:
             - type: "null"
         mfa:
           $ref: "#/components/schemas/MfaStatus"
-      required: [userId, role, tenant, mfa]
+        clientId:
+          type: ["string", "null"]
+        consentGranted:
+          type: boolean
+        privacyPolicyVersion:
+          type: string
+        subscriptionStatus:
+          type: ["string", "null"]
+          enum: [trialing, active, past_due, suspended, null]
+      required: [userId, role, tenant, mfa, clientId, consentGranted, privacyPolicyVersion, subscriptionStatus]
     MfaStatus:
       type: object
       properties:

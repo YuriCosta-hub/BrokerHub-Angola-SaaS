@@ -6,6 +6,7 @@ declare global {
       clerkUserId: string;
       tenantId?: string;
       role?: "super_admin" | "broker_master" | "agent" | "client";
+      clientId?: string | null;
     }
   }
 }

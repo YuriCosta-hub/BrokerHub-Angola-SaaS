@@ -1,0 +1,6 @@
+{
+  "name": "@workspace/i18n",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Contrato de dicionários PT/EN para um futuro App Router. Fonte: artifacts/brokerhub-angola/src/i18n"
+}

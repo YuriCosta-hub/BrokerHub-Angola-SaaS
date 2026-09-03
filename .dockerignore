@@ -1,0 +1,10 @@
+node_modules
+.git
+.conversation
+data
+.env
+.env.local
+*.tsbuildinfo
+dist
+artifacts/brokerhub-angola/dist
+artifacts/api-server/dist

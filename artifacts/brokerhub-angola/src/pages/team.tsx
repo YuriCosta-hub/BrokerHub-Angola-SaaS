@@ -1,87 +1,229 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState, type FormEvent } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Mail, UserPlus, UserCog } from "lucide-react";
-import { useUser } from "@clerk/react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Shield, Mail, UserPlus } from "lucide-react";
+import { apiJson } from "@/lib/session";
+import { useI18n } from "@/i18n";
+import { useToast } from "@/hooks/use-toast";
+import { useMe } from "@/hooks/use-me";
+
+type MemberRow = {
+  id: string;
+  email: string | null;
+  role: string;
+  clerkUserId: string;
+};
+
+type InviteRow = {
+  id: string;
+  email: string;
+  role: string;
+  status: string;
+  expiresAt: string;
+};
 
 export default function Team() {
-  const { user } = useUser();
-  
-  const mockTeam = [
-    { id: 1, name: user?.fullName || "Utilizador Atual", email: user?.primaryEmailAddress?.emailAddress || "user@brokerhub.co.ao", role: "admin", status: "active" },
-    { id: 2, name: "Maria Fernandes", email: "maria.f@brokerhub.co.ao", role: "manager", status: "active" },
-    { id: 3, name: "João Silva", email: "joao.s@brokerhub.co.ao", role: "agent", status: "active" },
-    { id: 4, name: "Ana Paulo", email: "ana.p@brokerhub.co.ao", role: "agent", status: "offline" },
-  ];
+  const { t } = useI18n();
+  const { data: me } = useMe();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState<"agent" | "broker_master" | "client">("agent");
+  const [clientId, setClientId] = useState("");
+  const [lastToken, setLastToken] = useState<string | null>(null);
+
+  const members = useQuery({
+    queryKey: ["members"],
+    queryFn: () => apiJson<MemberRow[]>("/api/members"),
+  });
+  const invites = useQuery({
+    queryKey: ["invites"],
+    queryFn: () => apiJson<InviteRow[]>("/api/invites"),
+  });
+
+  const invite = useMutation({
+    mutationFn: () =>
+      apiJson<{ token: string }>("/api/invites", {
+        method: "POST",
+        body: JSON.stringify({
+          email,
+          role,
+          clientId: role === "client" ? clientId : undefined,
+        }),
+      }),
+    onSuccess: (data) => {
+      setLastToken(data.token);
+      setOpen(false);
+      void queryClient.invalidateQueries({ queryKey: ["invites"] });
+      toast({
+        title: "Convite criado",
+        description: "Copie o token. Não será mostrado outra vez.",
+      });
+    },
+    onError: (err: Error) =>
+      toast({ variant: "destructive", title: err.message }),
+  });
+
+  const handleInvite = (event: FormEvent) => {
+    event.preventDefault();
+    invite.mutate();
+  };
+
+  const canInvite =
+    me?.role === "broker_master" || me?.role === "super_admin";
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Equipa</h2>
-          <p className="text-muted-foreground">Gestão de acessos, mediadores e permissões.</p>
+          <h2 className="text-2xl font-bold tracking-tight">{t.nav.team}</h2>
+          <p className="text-muted-foreground">
+            Convites reais por email. O token só é visível no momento da criação.
+          </p>
         </div>
-        <Button>
-          <UserPlus className="mr-2 h-4 w-4" /> Convidar Membro
-        </Button>
+        {canInvite && (
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <UserPlus className="mr-2 h-4 w-4" /> {t.team.invite}
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <form onSubmit={handleInvite} className="space-y-4">
+                <DialogHeader>
+                  <DialogTitle>{t.team.invite}</DialogTitle>
+                  <DialogDescription>
+                    O convidado deve criar conta Clerk com o mesmo email.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-2">
+                  <Label htmlFor="email">{t.team.email}</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label>{t.team.role}</Label>
+                  <Select
+                    value={role}
+                    onValueChange={(value) =>
+                      setRole(value as "agent" | "broker_master" | "client")
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="agent">Mediador</SelectItem>
+                      <SelectItem value="broker_master">Master</SelectItem>
+                      <SelectItem value="client">Tomador</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {role === "client" && (
+                  <div className="grid gap-2">
+                    <Label htmlFor="clientId">ID do cliente</Label>
+                    <Input
+                      id="clientId"
+                      required
+                      value={clientId}
+                      onChange={(event) => setClientId(event.target.value)}
+                    />
+                  </div>
+                )}
+                <Button type="submit" disabled={invite.isPending}>
+                  Enviar convite
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
+
+      {lastToken && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Token do convite</CardTitle>
+            <CardDescription>
+              Partilhe `/convite?token=...` por canal seguro. Não fica guardado em claro.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <code className="block break-all rounded bg-muted p-3 text-xs">
+              {`${window.location.origin}/convite?token=${lastToken}`}
+            </code>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
-          <CardTitle>Membros da Corretora</CardTitle>
-          <CardDescription>
-            Defina papéis para controlar o acesso à carteira e relatórios financeiros.
-          </CardDescription>
+          <CardTitle>Membros</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Utilizador</TableHead>
-                <TableHead>Contacto</TableHead>
+                <TableHead>Email</TableHead>
                 <TableHead>Papel</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockTeam.map((member) => (
+              {(members.data ?? []).map((member) => (
                 <TableRow key={member.id}>
                   <TableCell>
-                    <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                        {member.name.split(' ').map(n => n[0]).join('')}
-                      </div>
-                      <span className="font-medium">{member.name} {member.id === 1 && "(Tu)"}</span>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Mail className="h-3.5 w-3.5" />
+                      {member.email ?? member.clerkUserId}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Mail className="h-3.5 w-3.5" /> {member.email}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {member.role === 'admin' && <Badge variant="default"><Shield className="mr-1 h-3 w-3"/> Administrador</Badge>}
-                    {member.role === 'manager' && <Badge variant="secondary">Gestor</Badge>}
-                    {member.role === 'agent' && <Badge variant="outline">Mediador</Badge>}
-                  </TableCell>
-                  <TableCell>
-                    {member.status === 'active' ? (
-                      <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
-                        <span className="h-2 w-2 rounded-full bg-green-600"></span> Online
-                      </span>
+                    {member.role === "broker_master" || member.role === "super_admin" ? (
+                      <Badge>
+                        <Shield className="mr-1 h-3 w-3" /> {member.role}
+                      </Badge>
                     ) : (
-                      <span className="flex items-center gap-1 text-xs text-muted-foreground font-medium">
-                        <span className="h-2 w-2 rounded-full bg-muted-foreground"></span> Offline
-                      </span>
+                      <Badge variant="outline">{member.role}</Badge>
                     )}
                   </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" disabled={member.id === 1}>
-                      <UserCog className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Convites</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Email</TableHead>
+                <TableHead>Papel</TableHead>
+                <TableHead>Estado</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {(invites.data ?? []).map((row) => (
+                <TableRow key={row.id}>
+                  <TableCell>{row.email}</TableCell>
+                  <TableCell>{row.role}</TableCell>
+                  <TableCell>{row.status}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
